@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Impor tetap diperlukan
 import 'fitur/onboarding/onboarding_screen.dart';
-import 'package:aplikasir_mobile/fitur/homepage/homepage_screen.dart';
-import 'package:aplikasir_mobile/fitur/login/login_screen.dart';
+import 'package:aplikasir_mobile/fitur/homepage/scereens/homepage_screen.dart';
+import 'package:aplikasir_mobile/fitur/login/screens/login_screen.dart';
 // ... impor lain jika ada
 
 Future<void> main() async {

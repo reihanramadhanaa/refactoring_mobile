@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:aplikasir_mobile/fitur/login/login_screen.dart'; // Pastikan path impor benar
+import 'package:aplikasir_mobile/fitur/login/screens/login_screen.dart'; // Pastikan path impor benar
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart'; // Impor SharedPreferences
 

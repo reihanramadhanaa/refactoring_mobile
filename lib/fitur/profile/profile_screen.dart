@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // Untuk SharedPref
 // --- Impor yang Diperlukan ---
 import 'package:aplikasir_mobile/helper/db_helper.dart'; // Sesuaikan path jika perlu
 import 'package:aplikasir_mobile/model/user_model.dart'; // Sesuaikan path jika perlu
-import 'package:aplikasir_mobile/fitur/login/login_screen.dart'; // Untuk logout
+import 'package:aplikasir_mobile/fitur/login/screens/login_screen.dart'; // Untuk logout
 import 'package:aplikasir_mobile/fitur/profile/edit_profile_screen.dart'; // Layar edit yang akan dibuat
 
 class AccountScreen extends StatefulWidget {
