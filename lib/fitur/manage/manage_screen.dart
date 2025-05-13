@@ -1,17 +1,31 @@
-import 'package:aplikasir_mobile/fitur/manage/qris/qris_setup_screen.dart';
+// lib/fitur/manage/manage_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Untuk SystemUiOverlayStyle
 import 'package:google_fonts/google_fonts.dart';
-import 'package:aplikasir_mobile/fitur/manage/product/screens/product_screen.dart'; // Impor ProductScreen untuk navigasi
-import 'package:aplikasir_mobile/fitur/manage/customer/screens/customer_screen.dart'; // Impor ManageScreen untuk navigasi
-import 'package:aplikasir_mobile/fitur/manage/credit/screens/credit_list_screen.dart'; // Impor CustomerDebtHistoryScreen untuk navigasi
-import 'package:aplikasir_mobile/fitur/manage/report/report_screen.dart'; // Impor ReportScreen untuk navigasi';
+
+// Impor semua layar tujuan dan provider yang relevan (jika diperlukan untuk setup navigasi)
+import 'package:aplikasir_mobile/fitur/manage/product/screens/product_screen.dart';
+// Tidak perlu impor ProductProvider di sini karena ProductScreen akan membuat instancenya sendiri
+
+import 'package:aplikasir_mobile/fitur/manage/qris/screens/qris_setup_screen.dart';
+// Tidak perlu impor QrisProvider di sini
+
+import 'package:aplikasir_mobile/fitur/manage/credit/screens/credit_list_screen.dart';
+// Tidak perlu impor CreditListProvider di sini
+
+import 'package:aplikasir_mobile/fitur/manage/customer/screens/customer_screen.dart';
+// Tidak perlu impor CustomerProvider di sini
+
+import 'package:aplikasir_mobile/fitur/manage/report/screens/report_screen.dart';
+// Tidak perlu impor ReportProvider di sini
+
+// Jika ada layar Printer, impor di sini
+// import 'package:aplikasir_mobile/fitur/manage/printer/screens/printer_settings_screen.dart';
 
 class ManageScreen extends StatelessWidget {
   final int userId;
   const ManageScreen({super.key, required this.userId});
 
-  // --- Helper: Membangun Kartu Menu Kelola (Tetap Sama) ---
+  // Helper untuk membangun kartu menu
   Widget _buildManageCard({
     required BuildContext context,
     required String label,
@@ -20,34 +34,60 @@ class ManageScreen extends StatelessWidget {
     required Color iconBackgroundColor,
     required VoidCallback onTap,
   }) {
-    // ... (kode _buildManageCard sama) ...
+    // Style Kartu
+    final cardShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0));
+    final cardElevation = 3.0;
+    final cardColor = Colors.white;
+    final cardSurfaceTintColor = Colors.white;
+
+    // Style Ikon
+    final iconSize = MediaQuery.of(context).size.width * 0.085; // Buat ikon sedikit lebih besar
+    final iconContainerPadding = const EdgeInsets.all(18.0); // Kurangi padding jika ikon besar
+    final iconContainerShape = BoxDecoration(
+      color: iconBackgroundColor,
+      borderRadius: BorderRadius.circular(12.0),
+       boxShadow: [ // Tambahkan shadow lembut pada ikon container
+        BoxShadow(
+          color: iconColor.withOpacity(0.2),
+          blurRadius: 5,
+          offset: const Offset(0, 2),
+        )
+      ]
+    );
+
+    // Style Teks Label
+    final labelTextStyle = GoogleFonts.poppins(
+      fontSize: MediaQuery.of(context).size.width * 0.036, // Ukuran font responsif
+      fontWeight: FontWeight.w500,
+      color: Colors.grey.shade800, // Warna teks lebih gelap
+    );
+
     return SizedBox(
-      width: MediaQuery.of(context).size.width * 0.4,
-      height: MediaQuery.of(context).size.height * 0.18,
+      // Atur lebar dan tinggi berdasarkan persentase layar atau nilai tetap yang baik
+      width: (MediaQuery.of(context).size.width - 48 - 10) / 2, // (lebar layar - padding horizontal - spacing) / 2
+      // height: MediaQuery.of(context).size.height * 0.2, // Contoh tinggi responsif
       child: Card(
-        elevation: 2.0,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-        color: Colors.white,
-        surfaceTintColor: Colors.white,
+        elevation: cardElevation,
+        shape: cardShape,
+        color: cardColor,
+        surfaceTintColor: cardSurfaceTintColor,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12.0),
+          borderRadius: BorderRadius.circular(15.0), // Samakan dengan card shape
+          splashColor: iconColor.withOpacity(0.1),
+          highlightColor: iconColor.withOpacity(0.05),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 10.0), // Padding internal kartu
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    color: iconBackgroundColor,
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
+                  padding: iconContainerPadding,
+                  decoration: iconContainerShape,
                   child: Icon(
                     iconPlaceholder,
-                    size: 40,
+                    size: iconSize,
                     color: iconColor,
                   ),
                 ),
@@ -55,11 +95,9 @@ class ManageScreen extends StatelessWidget {
                 Text(
                   label,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: labelTextStyle,
+                  maxLines: 1, // Maksimal 1 baris untuk label
+                  overflow: TextOverflow.ellipsis, // Jika terlalu panjang, beri elipsis
                 ),
               ],
             ),
@@ -71,16 +109,29 @@ class ManageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Warna dari ReportScreen untuk konsistensi (jika diinginkan)
+    // final Color primaryColor = Colors.blue.shade700; // Bisa didefinisikan di sini
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: const Color(0xFFF7F8FC), // Background konsisten
+      // AppBar tidak diperlukan jika ini adalah bagian dari TabBarView di HomePage
+      // Jika ini layar terpisah, tambahkan AppBar:
+      // appBar: AppBar(
+      //   title: Text('Menu Kelola', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: primaryColor)),
+      //   backgroundColor: Colors.white,
+      //   foregroundColor: primaryColor,
+      //   elevation: 1.0,
+      //   centerTitle: true,
+      // ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 33.0, vertical: 19.0),
-        child: Wrap(
-          spacing: 10.0,
-          runSpacing: 10.0,
-          alignment: WrapAlignment.center,
+        // Beri padding keseluruhan untuk konten
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+        child: GridView.count(
+          crossAxisCount: 2, // 2 kartu per baris
+          crossAxisSpacing: 12.0, // Jarak horizontal antar kartu
+          mainAxisSpacing: 12.0,  // Jarak vertikal antar kartu
+          childAspectRatio: 1.1, // Sesuaikan rasio aspek kartu (width / height)
           children: [
-            // --- Kartu Produk (MODIFIKASI onTap) ---
             _buildManageCard(
               context: context,
               label: 'Produk',
@@ -88,16 +139,12 @@ class ManageScreen extends StatelessWidget {
               iconColor: Colors.orange.shade700,
               iconBackgroundColor: Colors.orange.shade50,
               onTap: () {
-                print('Navigasi ke Product Screen');
-                // Gunakan Navigator.push ke ProductScreen
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => ProductScreen(userId: userId)));
+                        builder: (context) => ProductScreen(userId: userId))); // ProductScreen akan membuat ProductProvider
               },
             ),
-
-            // --- Kartu QRIS (BARU) ---
             _buildManageCard(
               context: context,
               label: 'QRIS',
@@ -108,11 +155,9 @@ class ManageScreen extends StatelessWidget {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => QrisSetupScreen(userId: userId)));
+                        builder: (context) => QrisSetupScreen(userId: userId))); // QrisSetupScreen akan membuat QrisProvider
               },
             ),
-
-            // --- Kartu Kredit (BARU) ---
             _buildManageCard(
               context: context,
               label: 'Kredit',
@@ -120,17 +165,12 @@ class ManageScreen extends StatelessWidget {
               iconColor: Colors.teal.shade700,
               iconBackgroundColor: Colors.teal.shade50,
               onTap: () {
-                print('Navigasi ke Credit List Screen');
-                // *** Navigasi ke CreditListScreen ***
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) =>
-                            CreditListScreen(userId: userId)));
+                        builder: (context) => CreditListScreen(userId: userId))); // CreditListScreen akan membuat CreditListProvider
               },
             ),
-
-            // --- Kartu Pelanggan (BARU) ---
             _buildManageCard(
               context: context,
               label: 'Pelanggan',
@@ -138,16 +178,12 @@ class ManageScreen extends StatelessWidget {
               iconColor: Colors.indigo.shade700,
               iconBackgroundColor: Colors.indigo.shade50,
               onTap: () {
-                print('Navigasi ke Customer Screen');
-                // *** Navigasi ke CustomerScreen ***
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => CustomerScreen(userId: userId)));
+                        builder: (context) => CustomerScreen(userId: userId))); // CustomerScreen akan membuat CustomerProvider
               },
             ),
-
-            // --- Kartu Printer ---
             _buildManageCard(
               context: context,
               label: 'Printer',
@@ -155,14 +191,11 @@ class ManageScreen extends StatelessWidget {
               iconColor: Colors.blue.shade700,
               iconBackgroundColor: Colors.blue.shade50,
               onTap: () {
-                print('Buka Pengaturan Printer');
-                // TODO: Tambahkan navigasi PUSH ke halaman Pengaturan Printer (karena ini layar baru)
+                // TODO: Buat PrinterSettingsScreen dan Providernya jika perlu
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                     content: Text('Fitur Pengaturan Printer belum dibuat.')));
               },
             ),
-
-            // --- Kartu Laporan ---
             _buildManageCard(
               context: context,
               label: 'Laporan',
@@ -170,12 +203,10 @@ class ManageScreen extends StatelessWidget {
               iconColor: Colors.green.shade700,
               iconBackgroundColor: Colors.green.shade50,
               onTap: () {
-                print('Navigasi ke Customer Screen');
-                // *** Navigasi ke CustomerScreen ***
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => ReportScreen(userId: userId)));
+                        builder: (context) => ReportScreen(userId: userId))); // ReportScreen akan membuat ReportProvider
               },
             ),
           ],

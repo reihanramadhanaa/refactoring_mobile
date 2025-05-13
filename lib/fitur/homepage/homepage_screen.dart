@@ -10,7 +10,7 @@ import 'package:provider/provider.dart'; // Import Provider
 import '../history/screens/history_screen.dart'; // Sesuaikan path
 import '../history/providers/history_provider.dart'; // Provider untuk history
 import '../manage/manage_screen.dart'; // Sesuaikan path
-import '../profile/profile_screen.dart'; // Sesuaikan path
+import '../profile/screens/profile_screen.dart'; // Sesuaikan path
 import '../checkout/screens/checkout_screen.dart'; // Sesuaikan path
 
 // --- Impor Provider & Screen Baru ---

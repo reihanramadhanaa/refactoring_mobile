@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart'; // Import Provider
 
 // --- Imports for Register & Home ---
-import '../../register/register_step_1.dart'; // Sesuaikan path
+import '../../register/screens/register_step_1.dart'; // Sesuaikan path
 import '../../homepage/homepage_screen.dart';   // Sesuaikan path
 // --- Impor Provider ---
 import '../providers/login_provider.dart';   // Sesuaikan path
