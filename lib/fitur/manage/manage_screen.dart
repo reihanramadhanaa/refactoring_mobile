@@ -2,7 +2,7 @@ import 'package:aplikasir_mobile/fitur/manage/qris/qris_setup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Untuk SystemUiOverlayStyle
 import 'package:google_fonts/google_fonts.dart';
-import 'package:aplikasir_mobile/fitur/manage/product/product_screen.dart'; // Impor ProductScreen untuk navigasi
+import 'package:aplikasir_mobile/fitur/manage/product/screens/product_screen.dart'; // Impor ProductScreen untuk navigasi
 import 'package:aplikasir_mobile/fitur/manage/customer/screens/customer_screen.dart'; // Impor ManageScreen untuk navigasi
 import 'package:aplikasir_mobile/fitur/manage/credit/screens/credit_list_screen.dart'; // Impor CustomerDebtHistoryScreen untuk navigasi
 import 'package:aplikasir_mobile/fitur/manage/report/report_screen.dart'; // Impor ReportScreen untuk navigasi';

@@ -1,29 +1,37 @@
+// lib/fitur/manage/product/add_product_screen.dart
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:aplikasir_mobile/model/product_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:crop_image/crop_image.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
+// Hapus path_provider dan path jika tidak digunakan langsung di sini
+// import 'package:path_provider/path_provider.dart';
+// import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart'; // Impor Provider
 
-// --- Sesuaikan path impor model dan helper ---
-import 'package:aplikasir_mobile/model/product_model.dart';
-import 'package:aplikasir_mobile/helper/db_helper.dart';
+// --- Impor Provider Produk ---
+import 'package:aplikasir_mobile/fitur/manage/product/providers/product_provider.dart';
+// Model dan DB Helper tidak diimpor langsung jika semua via provider
+// import 'package:aplikasir_mobile/model/product_model.dart';
+// import 'package:aplikasir_mobile/helper/db_helper.dart';
 
 class AddProductScreen extends StatefulWidget {
-  final int userId;
+  final int
+      userId; // Tetap dibutuhkan untuk inisialisasi jika provider tidak di-create di atasnya
   final String? initialName;
   final String? initialCode;
-  final File? initialImageFile;
+  final File? initialImageFile; // Ini adalah temporary file dari scan
 
   const AddProductScreen({
     super.key,
-    required this.userId,
+    required this.userId, // Atau ambil dari ProductProvider jika sudah ada di tree
     this.initialName,
     this.initialCode,
     this.initialImageFile,
@@ -45,22 +53,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final TextEditingController _costPriceController = TextEditingController();
   final TextEditingController _sellingPriceController = TextEditingController();
 
-  File? _newCroppedImageFile;
-  File? _prefilledImageFile; // File dari parameter
-  bool _imageRemoved = false;
+  File? _newCroppedImageFile; // File temporary hasil crop
+  // Hapus _prefilledImageFile, gunakan _newCroppedImageFile dari widget.initialImageFile
+  // Removed unused field _imageRemoved
 
   bool _isCropping = false;
   String? _originalImagePathForCropping;
   bool _isSavingCrop = false;
-  bool _isSavingProduct = false;
+  bool _isSavingProduct = false; // State loading untuk tombol utama
+  bool _imageRemoved = false; // Tracks if the image has been removed
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName ?? '');
     _codeController = TextEditingController(text: widget.initialCode ?? '');
-    _prefilledImageFile = widget.initialImageFile;
-    if (_prefilledImageFile != null) {} // Anggap berubah jika ada prefilled
+
+    // Jika ada initialImageFile, set sebagai _newCroppedImageFile untuk preview
+    if (widget.initialImageFile != null) {
+      _newCroppedImageFile = widget.initialImageFile;
+      // Tidak perlu _imageChanged atau _imageRemoved di sini, karena ini adalah state awal
+    }
 
     _cropController = CropController(
       aspectRatio: 1.0,
@@ -70,6 +83,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _sellingPriceController.text = _formatCurrencyInput(0);
   }
 
+  // ... (Fungsi _formatCurrencyInput, _parseCurrencyInput, _pickImage, _confirmCrop, _cancelCrop, _showImageSourceActionSheet, _removeCurrentImage SAMA)
+  // Di _confirmCrop, _newCroppedImageFile akan di-set.
+  // Di _pickImage, _newCroppedImageFile dan _originalImagePathForCropping akan di-handle.
+  // Di _removeCurrentImage, _newCroppedImageFile di-null-kan, _imageRemoved = true.
+  // Pastikan _clearTemporaryCroppedFile menghapus _newCroppedImageFile.
   String _formatCurrencyInput(double value) {
     final formatter = NumberFormat("#,##0", "id_ID");
     return formatter.format(value);
@@ -93,26 +111,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _sellingPriceController.dispose();
     _cropController.dispose();
     _clearTemporaryCroppedFile();
-    _clearPrefilledImageFile(); // Hapus prefilled juga saat dispose
+    // Hapus widget.initialImageFile JIKA ITU TEMPORARY dan tidak akan dipakai lagi.
+    // Biasanya, provider yang memanggil screen ini sudah menghandle lifecycle file temporary.
+    // if (widget.initialImageFile != null && widget.initialImageFile!.existsSync()) {
+    //   widget.initialImageFile!.delete().catchError((e) => print("Error deleting initial temp file: $e"));
+    // }
     super.dispose();
   }
 
   void _clearTemporaryCroppedFile() {
     if (_newCroppedImageFile != null && _newCroppedImageFile!.existsSync()) {
-      _newCroppedImageFile!
-          .delete()
-          // ignore: invalid_return_type_for_catch_error
-          .catchError((e) => print("Error deleting temp crop file: $e"));
-    }
-  }
-
-  void _clearPrefilledImageFile() {
-    if (_prefilledImageFile != null && _prefilledImageFile!.existsSync()) {
-      // Asumsi file prefilled selalu temporary
-      _prefilledImageFile!
-          .delete()
-          // ignore: invalid_return_type_for_catch_error
-          .catchError((e) => print("Error deleting prefilled image file: $e"));
+      // Jika _newCroppedImageFile adalah widget.initialImageFile, jangan hapus di sini.
+      // Biarkan provider atau pemanggil yang handle.
+      if (widget.initialImageFile == null ||
+          widget.initialImageFile?.path != _newCroppedImageFile?.path) {
+        _newCroppedImageFile!
+            .delete()
+            .catchError((e) {
+              print("Error deleting temp crop file: $e");
+              return _newCroppedImageFile!;
+            });
+      }
     }
   }
 
@@ -121,10 +140,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() {
       _isCropping = false;
       _originalImagePathForCropping = null;
-      _clearTemporaryCroppedFile();
+      // _clearTemporaryCroppedFile(); // Hati-hati jika _newCroppedImageFile adalah initialImageFile
+      if (_newCroppedImageFile != widget.initialImageFile)
+        _clearTemporaryCroppedFile();
       _newCroppedImageFile = null;
-      _clearPrefilledImageFile();
-      _prefilledImageFile = null; // Hapus prefilled
       _imageRemoved = false;
     });
     try {
@@ -161,14 +180,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
       Uint8List pngBytes = byteData.buffer.asUint8List();
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${tempDir.path}/temp_crop_add_$timestamp.png';
+      // Buat nama file yang lebih unik untuk crop
+      final filePath = '${tempDir.path}/temp_crop_add_screen_$timestamp.png';
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
-      _clearTemporaryCroppedFile();
-      _clearPrefilledImageFile(); // Hapus prefilled juga
+
+      // Hapus file crop temporary SEBELUMNYA, kecuali jika itu initialImageFile
+      if (_newCroppedImageFile != null &&
+          _newCroppedImageFile != widget.initialImageFile) {
+        _clearTemporaryCroppedFile();
+      }
+
       setState(() {
-        _newCroppedImageFile = file;
-        _prefilledImageFile = null;
+        _newCroppedImageFile = file; // Ini adalah file temporary baru
         _isCropping = false;
         _originalImagePathForCropping = null;
         _imageRemoved = false;
@@ -177,11 +201,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       print("Error cropping: $e");
       _showErrorSnackbar('Gagal memotong gambar: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSavingCrop = false;
-        });
-      }
+      if (mounted) setState(() => _isSavingCrop = false);
     }
   }
 
@@ -192,14 +212,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (_originalImagePathForCropping != null) {
         final originalFile = File(_originalImagePathForCropping!);
         originalFile.exists().then((exists) {
-          if (exists) {
+          if (exists)
             originalFile
                 .delete()
-                // ignore: invalid_return_type_for_catch_error
-                .catchError((e) => print("Error deleting original: $e"));
-          }
+                .catchError((e) {
+                  print("Error deleting original: $e");
+                  return originalFile;
+                });
         });
         _originalImagePathForCropping = null;
+      }
+      // Jika batal crop, kembalikan _newCroppedImageFile ke widget.initialImageFile jika ada
+      // atau null jika tidak ada initial. Ini agar preview kembali ke gambar awal (jika dari scan)
+      if (widget.initialImageFile != null) {
+        _newCroppedImageFile = widget.initialImageFile;
+        _imageRemoved = false; // Gambar awal tidak jadi dihapus
+      } else {
+        _newCroppedImageFile = null;
       }
     });
   }
@@ -228,90 +257,64 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void _removeCurrentImage() {
     if (_isSavingProduct || _isCropping) return;
     setState(() {
-      _clearTemporaryCroppedFile();
-      _newCroppedImageFile = null;
-      _clearPrefilledImageFile();
-      _prefilledImageFile = null;
-      _imageRemoved = true;
+      if (_newCroppedImageFile != widget.initialImageFile)
+        _clearTemporaryCroppedFile(); // Hapus temp crop jika bukan initial
+      _newCroppedImageFile = null; // Preview jadi kosong
+      _imageRemoved = true; // Tandai gambar dihapus
     });
     _showInfoSnackbar('Gambar dihapus.');
   }
 
+  // --- Logika Simpan Produk (MEMANGGIL PROVIDER) ---
   Future<void> _addProduct() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isSavingProduct) return;
     setState(() => _isSavingProduct = true);
-    String? finalImagePath;
 
-    try {
-      File? imageToSave;
-      if (_newCroppedImageFile != null) {
-        imageToSave = _newCroppedImageFile;
-      } else if (_prefilledImageFile != null && !_imageRemoved) {
-        imageToSave = _prefilledImageFile;
+    // Ambil ProductProvider
+    final productProvider = context.read<ProductProvider>();
+
+    final Product? savedProduct = await productProvider.addProduct(
+      name: _nameController.text.trim(),
+      code: _codeController.text.trim(),
+      stock: int.tryParse(_stockController.text.trim()) ?? 0,
+      costPrice: _parseCurrencyInput(_costPriceController.text),
+      sellingPrice: _parseCurrencyInput(_sellingPriceController.text),
+      // Kirim _newCroppedImageFile (bisa jadi ini adalah widget.initialImageFile jika tidak diubah, atau file crop baru)
+      // Provider akan handle penyimpanan permanen.
+      tempImageFile: _newCroppedImageFile,
+    );
+
+    if (!mounted) return;
+
+    if (savedProduct != null) {
+      _showSuccessSnackbar('Produk baru berhasil ditambahkan!');
+      // Jika widget.initialImageFile adalah temporary dan sudah dipakai, mungkin perlu dihapus di sini atau oleh pemanggil ProductScreen
+      // Namun, karena _newCroppedImageFile yg dikirim, dan provider meng-copy-nya, file asli _newCroppedImageFile bisa dihapus
+      // setelah berhasil (jika itu bukan widget.initialImageFile).
+      // _clearTemporaryCroppedFile() akan menghapus _newCroppedImageFile JIKA BUKAN initial.
+      if (_newCroppedImageFile != null &&
+          _newCroppedImageFile != widget.initialImageFile) {
+        _newCroppedImageFile!
+            .delete()
+            .catchError((e) {
+              print("Error deleting final temp add file: $e");
+              return _newCroppedImageFile!;
+            });
       }
-
-      if (imageToSave != null) {
-        final documentsDir = await getApplicationDocumentsDirectory();
-        final imagesDir = Directory(p.join(
-            documentsDir.path, 'product_images', widget.userId.toString()));
-        if (!await imagesDir.exists()) {
-          await imagesDir.create(recursive: true);
-        }
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final permanentPath = p.join(
-            imagesDir.path, 'product_new_${widget.userId}_$timestamp.png');
-        final permanentFile = await imageToSave.copy(permanentPath);
-        finalImagePath = permanentFile.path;
-        await imageToSave.delete(); // Hapus temporary
-        if (imageToSave == _newCroppedImageFile) _newCroppedImageFile = null;
-        if (imageToSave == _prefilledImageFile) _prefilledImageFile = null;
-      }
-
-      final newProduct = Product(
-        idPengguna: widget.userId,
-        namaProduk: _nameController.text.trim(),
-        kodeProduk: _codeController.text.trim(),
-        jumlahProduk: int.tryParse(_stockController.text.trim()) ?? 0,
-        hargaModal: _parseCurrencyInput(_costPriceController.text),
-        hargaJual: _parseCurrencyInput(_sellingPriceController.text),
-        gambarProduk: finalImagePath,
-      );
-
-      final dbHelper = DatabaseHelper.instance;
-      final productId = await dbHelper.insertProduct(newProduct);
-
-      if (!mounted) return; // Cek mounted setelah await
-
-      if (productId > 0) {
-        _showSuccessSnackbar('Produk baru berhasil ditambahkan!');
-        Navigator.pop(context, true);
-      } else {
-        throw Exception('Gagal menambahkan produk ke database.');
-      }
-    } catch (e) {
-      print("Error saving new product: $e");
-      if (finalImagePath != null) {
-        // Rollback gambar
-        final savedImg = File(finalImagePath);
-        try {
-          if (await savedImg.exists()) await savedImg.delete();
-        } catch (imgErr) {
-          print("Error deleting image on failed save: $imgErr");
-        }
-      }
-      if (mounted) {
+      Navigator.pop(context, true); // Kirim true untuk refresh
+    } else {
+      // Ambil error message dari provider jika ada
+      if (productProvider.errorMessage.isNotEmpty) {
         _showErrorSnackbar(
-            'Gagal menyimpan produk: ${e.toString().replaceFirst("Exception: ", "")}');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSavingProduct = false);
+            'Gagal menyimpan produk: ${productProvider.errorMessage}');
+      } else {
+        _showErrorSnackbar('Gagal menyimpan produk.');
       }
     }
+    setState(() => _isSavingProduct = false);
   }
 
-  // --- Helper Snackbar ---
   void _showErrorSnackbar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -330,7 +333,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         SnackBar(content: Text(message), duration: const Duration(seconds: 2)));
   }
 
-  // --- Helper Build TextField ---
+  // --- Widget UI SAMA seperti sebelumnya (_buildTextField, _buildCurrencyField, _buildImagePicker, _buildCroppingUI) ---
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -386,7 +389,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ]));
   }
 
-  // --- Helper Build Currency Field ---
   Widget _buildCurrencyField({
     required TextEditingController controller,
     required String label,
@@ -405,7 +407,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              ThousandsSeparatorInputFormatter(),
+              ThousandsSeparatorInputFormatter()
             ],
             decoration: InputDecoration(
               prefixText: 'Rp ',
@@ -441,14 +443,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ]));
   }
 
-  // --- Helper Build Image Picker ---
   Widget _buildImagePicker() {
     ImageProvider? currentImage;
+    // Gunakan _newCroppedImageFile untuk preview karena ini yang akan dikirim
     if (_newCroppedImageFile != null) {
       currentImage = FileImage(_newCroppedImageFile!);
-    } else if (_prefilledImageFile != null && !_imageRemoved) {
-      currentImage = FileImage(_prefilledImageFile!);
     }
+    // Tidak perlu _prefilledImageFile lagi jika _newCroppedImageFile di-init dari widget.initialImageFile
 
     return Column(children: [
       Text("Gambar Produk (Opsional)",
@@ -491,7 +492,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     ]);
   }
 
-  // --- Helper Build Cropping UI ---
   Widget _buildCroppingUI() {
     if (_originalImagePathForCropping == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _cancelCrop());
@@ -525,26 +525,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
                 TextButton.icon(
-                  icon: const Icon(Icons.close, color: Colors.redAccent),
-                  label: const Text('Batal',
-                      style: TextStyle(color: Colors.redAccent)),
-                  onPressed: _isSavingCrop ? null : _cancelCrop,
-                ),
+                    icon: const Icon(Icons.close, color: Colors.redAccent),
+                    label: const Text('Batal',
+                        style: TextStyle(color: Colors.redAccent)),
+                    onPressed: _isSavingCrop ? null : _cancelCrop),
                 TextButton.icon(
-                  icon: const Icon(Icons.check, color: Colors.green),
-                  label: const Text('Konfirmasi',
-                      style: TextStyle(color: Colors.green)),
-                  onPressed: _isSavingCrop ? null : _confirmCrop,
-                ),
+                    icon: const Icon(Icons.check, color: Colors.green),
+                    label: const Text('Konfirmasi',
+                        style: TextStyle(color: Colors.green)),
+                    onPressed: _isSavingCrop ? null : _confirmCrop),
               ],
             ),
           )
         ]));
   }
 
-  // --- Build Method Utama ---
   @override
   Widget build(BuildContext context) {
+    // ... (Build method utama sama, hanya fungsi _addProduct yang berubah)
+    // Pastikan untuk menyediakan ProductProvider di atas screen ini jika belum (misal di ManageScreen atau ProductScreen saat navigasi)
     return PopScope(
       canPop: !_isCropping && !_isSavingProduct && !_isSavingCrop,
       onPopInvoked: (didPop) {
@@ -578,23 +577,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         _buildImagePicker(),
                         const SizedBox(height: 30),
                         _buildTextField(
-                          controller: _nameController,
-                          label: 'Nama Produk',
-                          hint: 'Masukkan nama produk',
-                          icon: Icons.label_outline,
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Nama produk wajib diisi'
-                              : null,
-                        ),
+                            controller: _nameController,
+                            label: 'Nama Produk',
+                            hint: 'Masukkan nama produk',
+                            icon: Icons.label_outline,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Nama produk wajib diisi'
+                                : null),
                         _buildTextField(
-                          controller: _codeController,
-                          label: 'Kode Produk (SKU)',
-                          hint: 'Masukkan kode unik produk',
-                          icon: Icons.qr_code_2_outlined,
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Kode produk wajib diisi'
-                              : null,
-                        ),
+                            controller: _codeController,
+                            label: 'Kode Produk (SKU)',
+                            hint: 'Masukkan kode unik produk',
+                            icon: Icons.qr_code_2_outlined,
+                            validator: (v) => v == null || v.isEmpty
+                                ? 'Kode produk wajib diisi'
+                                : null),
                         _buildTextField(
                             controller: _stockController,
                             label: 'Jumlah Stok Awal',
@@ -631,7 +628,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 return 'Harga jual wajib diisi';
                               final sell = _parseCurrencyInput(v);
                               if (sell < 0) return 'Harga tidak valid';
-                              /* final cost = _parseCurrencyInput(_costPriceController.text); if (sell < cost) return 'Harga jual < modal'; */ return null;
+                              return null;
                             }),
                         const SizedBox(height: 35),
                         ElevatedButton.icon(
@@ -674,34 +671,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
     );
   }
-} // End of _AddProductScreenState
+}
 
-// --- Helper Class ThousandsSeparatorInputFormatter ---
 class ThousandsSeparatorInputFormatter extends TextInputFormatter {
   static final NumberFormat _formatter = NumberFormat("#,##0", "id_ID");
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-    if (newValue.text.isEmpty) {
-      return newValue.copyWith(text: '');
-    }
+    if (newValue.text.isEmpty) return newValue.copyWith(text: '');
     String newText = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (newText.isEmpty) {
+    if (newText.isEmpty)
       return const TextEditingValue(
-        text: '',
-        selection: TextSelection.collapsed(offset: 0),
-      );
-    }
+          text: '', selection: TextSelection.collapsed(offset: 0));
     try {
       double value = double.parse(newText);
       String formattedText = _formatter.format(value);
       return newValue.copyWith(
-        text: formattedText,
-        selection: TextSelection.collapsed(offset: formattedText.length),
-      );
+          text: formattedText,
+          selection: TextSelection.collapsed(offset: formattedText.length));
     } catch (e) {
       print("Error formatting number: $e");
       return oldValue;
     }
   }
-} // End of ThousandsSeparatorInputFormatter
+}
